@@ -1,0 +1,1210 @@
+\documentclass[fleqn]{mybase}
+\usepackage{mysimple}
+\usepackage{texvar}
+\usepackage{epstopdf}
+\usepackage{mdframed}
+\graphicspath{{Abbildungen/}}
+
+\title{TexVar - Manual}
+\subtitle{TexVar - LaTeX math calculations\\[0.5 cm]\normalsize\directlua{tVar.getVersion()}}
+\date{\today}
+\author{Sebastian Pech}
+
+\addbibresource{TexVar_manual.bib}
+% Create new environment for tVar Output
+\mdfdefinestyle{tVarSTYLE}
+{
+linewidth=1pt,
+innerleftmargin=0cm,
+innertopmargin=0cm,
+userdefinedwidth=13cm,
+align=center,
+frametitle={\hfill Output},
+rightline=false,
+leftline=false
+}
+
+%\begin{luacode*}
+%function tVar.units:printStackTex(layer)
+%	layer = layer or 0
+%	if layer == 0 then
+%		tex.print("\\si{" .. (self.identifier or " ").. "}")
+%	end
+%	tex.print("\\begin{itemize}[nosep,noitemsep]")
+%	for i,v in self:iterateStack() do
+%		local ident = ""
+%		if v.unit.identifier ~= nil then 
+%			ident = v.unit.identifier
+%		end
+%		tex.print("\\item " .. v.operation .. "\\," .. v.factor .. "\\," .. "\\si{" .. ident .. "}" ..  "")
+%		if not v.unit:isLeaf() then
+%			v.unit:printStackTex(layer+1)
+%		end
+%	end
+%	tex.print("\\end{itemize}")
+%end
+%\end{luacode*}
+
+\newenvironment{tVarOUT}
+{
+\begin{mdframed}[style=tVarSTYLE]
+}
+{
+\end{mdframed}
+}
+
+\begin{document}
+\selectlanguage{english}
+\maketitle
+\tableofcontents
+\section{Description}
+TexVar (short tVar) is a basic \LaTeX~math calculations tool written in Lua. For integration into \LaTeX~it has to be used together with LuaLaTeX. Compared to software like Mathcad TexVar is a lot more flexible. You can fill custom designed tables with results, do calculations within text documents and print beautiful LaTeX equations. The current version also supports 2D-plotting with gnuplot.
+\section{Installation}
+\subsection{Prerequisites}
+The following software is needed in order to use TexVar:
+\begin{itemize}
+	\item Lua 5.1 or higher
+	\item LuaLaTeX (MikTex or Texlive)
+	\item GnuPlot 5.0 (only needed for plotting)
+\end{itemize}
+By default the command \verb|\si{}| is used for displaying units, so the siunitx package is mandatory. If you want to define your own command you can change the value of \verb|tVar.unitCommand = "\\si"|. 
+\subsection{Installation}
+Download TexVar from \url{http://texvar.projectzoo.at/} and copy the folder \emph{tVar} and the file \emph{texvar.sty} (subfolder package) to a location that is visible to \LaTeX. (e.g. the folder your *.tex file is in or global \LaTeX-folder \footnote{You can find information on global \LaTeX-folders at\url{https://www.math.hmc.edu/computing/support/tex/installing/}})
+\subsubsection{Configuration for Gnuplot}
+In order to use Gnuplot with TexVar you have to allow LuaLaTeX to call external commands during runtime. This works through the command-line switch \lstinline[language=Bash]|--shell-escape|. Your complete call for LuaLaTeX could look like this: \lstinline[language=Bash]|lualatex -synctex=1 -interaction=nonstopmode --shell-escape %.tex|. 
+\section{Getting Started - Hello World}
+To ensure your installation is working test the following code. When using an luacode based environment like tVar it's important that the commands \lstinline|\begin{tVar} \end{tVar}| are \emph{not indented}.
+\begin{lstlisting}
+\documentclass{article}
+%
+\usepackage{texvar}
+\usepackage[fleqn]{amsmath}
+%
+\begin{document}
+\begin{tVar}
+	#Hello World! I'm using TexVar
+	tVar.getVersion()
+\end{tVar}
+\end{document}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	tVar.logInterp = true 
+	#Hello World! I'm using TexVar
+	tVar.getVersion()
+\end{tVar}
+\end{tVarOUT}
+\section{General Information on tVar Environment and Macro}
+To execute TexVar commands from \LaTeX, the TexVar package offers two options:
+\begin{itemize}
+	\item \lstinline|\begin{tVar} \end{tVar}|, for commands blocks
+	\item \lstinline|\tv{}|, for inline calls
+\end{itemize}
+Both forward the commands to the TexVar interpreter.
+\begin{lstlisting}
+\begin{tVar}
+	a:=10
+	b:=3
+	c:=a+b
+\end{tVar}
+The result is: \tv{c:outRES()}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+{
+a:=10
+b:=3
+c:=a+b
+}
+\end{tVar}
+The result is: \tv{c:outRES()}
+\end{tVarOUT}
+Generally, there are two key commands the TexVar interpreter searches for \footnote{Details on these key commands are discussed in Section \ref{lbl:tvarcommands}}:
+\begin{enumerate}
+	\item \#, for text output
+	\item :=, for calculations and assignments
+\end{enumerate}
+Every other command is directly forwarded to the Lua interpreter. This means you can write any Lua code you want inside the tVar environment. 
+\begin{lstlisting}
+\begin{tVar}
+	function mypow(a,b)
+		return a^b
+	end
+	for i=0,2 do
+		tex.print("Step " .. mypow(2,i) .. "\\\\")
+	end
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	function mypow(a,b)
+		return a^b
+	end
+	for i=0,2 do
+		tex.print("Step " .. mypow(2,i) .. "\\\\")
+	end
+\end{tVar}
+\end{tVarOUT}
+\section{TexVar - Commands}
+\label{lbl:tvarcommands}
+\subsection{Creating Variables}
+\label{lbl:creatingVars}
+TexVar knows three types of variables: 
+\begin{labeling}{xxxxx}
+	\item[tVar] is the basic type for scalar values.
+	\item[tMat] is used for matrices.
+	\item[tVec] is used for vectors.
+\end{labeling}
+The following code generates a variable of each type. Every assignment is made with $:=$.
+\begin{lstlisting}
+\begin{tVar}
+	a:=13
+	e:={1,2,4}
+	A:={{1,0},{2,4},{3,9.1}}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+a:=13
+e:={1,2,4}
+A:={{1,0},{2,4},{3,9.1}}
+\end{tVar}
+\end{tVarOUT}
+\subsubsection{Creating Variables in Equations}
+New variables can also be created inside equations. The notation for vectors and matrices is explained in Section \ref{lbl:creatingVars}. Lua knows - by default - how to do calculations with numbers, so any equation which does not contain tVar objects, can only be printed as it's result. Any mathematical operation with a tVar object and a decimal number results in a tVar value. 
+\begin{lstlisting}
+\begin{tVar}
+	# Variable a is created from the equation ...
+	a:=13*2^2
+	# To preserver the equation some of the ...
+	a:=tVar:New(13)*2^2
+	# At first Lua calculates $2^2=4$ ...
+	# To print the whole ...
+	a:=13*tVar:New(2)^2
+	# Matrices and Vectors
+	c:={{1,2,3},{4,2,6},{1,3,2}}*{1,2,3}*a
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+# Variable a is created from the equation $13\\cdot2^2$. Since all numbers are just decimal values, Lua calculates the result and creates the tVar object afterwards.
+a:=13*2^2
+# To preserver the equation some of the numbers have to be initialized as tVar objects. In this case it's the number 13.
+a:=tVar:New(13)*2^2
+# At first Lua calculates $2^2=4$ and then multiplies the tVar object 13 with $4$ which results in a tVar object containing the equation.
+# To print the whole equation, one number from the first calculation has to be transformed into a tVar object. 
+a:=13*tVar:New(2)^2
+# Matrices and Vectors
+c:={{1,2,3},{4,2,6},{1,3,2}}*{1,2,3}*a
+\end{tVar}
+\end{tVarOUT}
+\subsubsection{Auto-Formatting of variable names}
+\label{lbl:autoformatting}
+The \LaTeX-representation of a variable is automatically generated from the variable name. The first occurrence of an underline starts the subscript the first occurrence of a double underline starts the superscript. Every other underline becomes a comma.
+\begin{lstlisting}
+\begin{tVar}
+	a_1_3:=13
+	a__10_2:=3
+	b_1_x__y_2:=12
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+{
+	a_1_3:=13
+	a__10_2:=3
+	b_1_x__y_2:=12
+}
+\end{tVar}
+\end{tVarOUT}
+\subsection{Creating Functions}
+\label{lbl:creatFun}
+Functions can easily be defined with the following syntax. The auto-formatting of function names and attribute names works according to Section \ref{lbl:autoformatting}.
+\begin{lstlisting}
+\begin{tVar}
+	f(x,y):=x^2+y^2+4
+	a:=f(2,3)+11
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+f(x,y):=x^2+y^2+4
+a:=f(2,3)+11
+\end{tVar}
+\end{tVarOUT}
+\subsection{Indexing Matrices and Vectors}
+The syntax for indexing a matrix is similar to the Matlab syntax. To access a matrix you have to use square brackets and a string as key. The key has to be formatted according to the following examples.
+\begin{lstlisting}
+\begin{tVar}
+	A:={{1,2,6},{2,4,6},{7,6,9}}
+	# Index one element with syntax [row,column]
+	A["1,2"]:outRES()
+	# Index a range 
+	A["1:2,1:end"]:outRES()
+	# The range 1:end is equal to :
+	A["1:2,:"]:outRES()
+	# You can also set matrices this way
+	A["1:2,:"]:={{1,2,3},{4,5,6}}
+	A["1:2,:"]:outRES()
+	# Adress vector
+	c:=A[":,2"]
+	d:=A["2,:"]
+	# The above also applies to vectors
+	{plain
+		v_1:={1,4,3}
+		#,~
+		v_1["2"]:outRES()
+		#,~
+		v_1["1"]:=9
+		v_1:outRES()
+	}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	A:={{1,2,6},{2,4,6},{7,6,9}}
+	# Index one element with syntax [row,column]
+	A["1,2"]:outRES()
+	# Index a range 
+	A["1:2,1:end"]:outRES()
+	# The range 1:end is equal to :
+	A["1:2,:"]:outRES()
+	# You can also set matrices this way
+	A["1:2,:"]:={{1,2,3},{4,5,6}}
+	A["1:2,:"]:outRES()
+	# Adress vector
+	c:=A[":,2"]
+	d:=A["2,:"]
+	# The above also applies to vectors
+{plain
+	v_1:={1,4,3}
+	#,~
+	v_1["2"]:outRES()
+	#,~
+	v_1["1"]:=9
+	v_1:outRES()
+}
+\end{tVar}
+\end{tVarOUT}
+The command \lstinline|{plain }| groups equations to one math environment. For details see Section \ref{sec:groups}
+\subsection{Output}
+\subsubsection{print()}
+\label{sec:OUTPUT_PRINT}
+The \lstinline|[tVar]:print()| command creates the output according to the global parameter \lstinline|tVar.OUTPUT_MODE|. The following options are supported:\\
+\begin{tVarOUT}
+\begin{tVar}
+{
+	a:=10
+	b:=2
+	c:=(a+b):print()
+}
+	#\\verb|tVar.OUTPUT_MODE = \"RES_EQ_N\"|
+	tVar.OUTPUT_MODE = "RES_EQ_N"
+	c:print()
+	#\\verb|tVar.OUTPUT_MODE = \"RES_EQ\"|
+	tVar.OUTPUT_MODE = "RES_EQ"
+	c:print()
+	#\\verb|tVar.OUTPUT_MODE = \"RES\"|
+	tVar.OUTPUT_MODE = "RES"
+	c:print()
+\end{tVar}
+\end{tVarOUT}
+If you do your calculations inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the \lstinline|[tVar]:print()| command is automatically added to your calculations. This means \lstinline|c:=(a+b)| creates an output using the \lstinline|[tVar]:print()| command. To suppress the automatic output just add a ";" at the end of the line.
+\begin{lstlisting}
+\begin{tVar}
+	# With output:
+	a:=10
+	b:=3
+	c:=a+b
+	# Without output (Lines 7 and 8 produce no output):
+	a:=10;
+	b:=3;
+	c:=a+b
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+		tVar.OUTPUT_MODE = "RES_EQ_N"
+# With output:
+{
+a:=10
+b:=3
+c:=a+b
+}
+# Without output (Lines 7 and 8 produce no output):
+a:=10;
+b:=3;
+c:=a+b
+\end{tVar}
+\end{tVarOUT}
+\subsubsection{outRES()}
+The \lstinline|[tVar]:outRES()| command is equal to the combination of \lstinline|[tVar]:print()| with \lstinline|tVar.OUTPUT\_MODE = "RES"|. If you do your calculations inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the \lstinline|[tVar]:outRES()| command is automatically added to any assignment of a new variable. That means \lstinline|a:=10| creates and output using the \lstinline|[tVar]:outRES()| command.
+
+In some cases you might want to print an equation without assigning it to a variable. This can be achieved by directly calling the function \lstinline|tVar.outRES([tVar])| (now with a dot) and passing your equation as argument to the function.
+\begin{lstlisting}
+\begin{tVar}
+	a:=2
+	b:=13
+	tVar.outRES((a+b)/2+b)
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	{
+	a:=2
+	b:=13
+}
+	tVar.outRES((a+b)/2+b)
+\end{tVar}
+\end{tVarOUT}
+This method also works for the output commands listed in Section \ref{sec:outputcommands}.
+\subsubsection{Other Output Commands}
+\label{sec:outputcommands}
+For every output mode mentioned in Section \ref{sec:OUTPUT_PRINT} there is an equal output function.
+\begin{labeling}{RESxEQxxN}
+	\item[RES\_EQ\_N] \lstinline|[tVar]:outRES_EQ_N(numbering,environment)|
+	\item[RES\_EQ] \lstinline|[tVar]:outRES_EQ(numbering,environment)|
+	\item[RES] \lstinline|[tVar]:outRES(numbering,environment)|
+\end{labeling}
+The attributes \emph{numbering} and \emph{environment} are boolean values and define if the output is created with numeration and a math environment. Both parameters are optional and can also be defined via the global parameters \lstinline|tVar.EQUATION_NUMBERING| and  \lstinline|tVar.MATH_ENVIRONMENT|\footnote{In case \lstinline|tVar.MATH_ENVIRONMENT| is set to "" no math environment is used.}
+
+Additionally there are the functions  \lstinline|[tVar]:out()| for printing the result without the variable name and \lstinline|[tVar]:outN()| for printing the variable name the equation with numbers and the result.
+\subsubsection{\LaTeX~Output}
+Inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the symbol \# can be used to print a text in \LaTeX. Inside such a text you can use \%\%[tVar]\%\% to print a variables name and \$\$[tVar]\$\$ to print a variables value.
+
+\LaTeX~commands used within \# have to be escaped. For example \lstinline|\textbf{}| has to be written as \lstinline|\\textbf{}|. 
+\begin{lstlisting}
+\begin{tVar}
+	#\\subsection*{First Subsection}
+	a_1_2:=22.4:setUnit("m")
+	# Linebreaks are a bit confusing \\\\
+	# The variable %%a_1_2%% has the value $$a_1_2$$	
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+#\\subsection*{First Subsection}
+a_1_2:=22.4:setUnit("m") 
+# Linebreaks are a bit confusing \\\\
+# The variable %%a_1_2%% has the value $$a_1_2$$	
+\end{tVar}
+\end{tVarOUT}
+\subsubsection{Precise Manipulation of Output}
+The following functions manipulate equations directly and can be used for detailed formatting.
+\begin{lstlisting}
+\begin{tVar}
+	a:=10:setUnit("m")
+	b:=3:setUnit("m")
+	c:=((((a+b):bracR()^2):bracB()*5):bracC()*22):setUnit("m^2")
+	#In case you do a really long calculation you can insert a linebreak\\\\
+	c:=((a+a+a+a+a+a+a+a+b+b):CRLF("+")+b+b+b:CRLF_EQ("+")+b+b+b+a+a+a+a):CRLFb("=")
+	tVar.DEBUG_MODE = "off"
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	a:=10:setUnit("m")
+	b:=3:setUnit("m")
+	c:=((((a+b):bracR()^2):bracB()*5):bracC()*22):setUnit("m^2")
+	#In case you do a really long calculation you can insert a linebreak\\\\
+	c:=((a+a+a+a+a+a+a+a+b+b):CRLF("+")+b+b+b:CRLF_EQ("+")+b+b+b+a+a+a+a):CRLFb("=")
+	tVar.DEBUG_MODE = "off"
+\end{tVar}
+\end{tVarOUT}
+\begin{table}[ht]\centering
+	\begin{tabular}{@{}p{5.6cm}p{8cm}@{}}\toprule
+		\lstinline|[tVar]:bracR()| & Surrounds the [tVar] object with round brackets. \\	
+		\lstinline|[tVar]:bracB()| & \dots~ boxed brackets. \\
+		\lstinline|[tVar]:bracC()| & \dots~ curly brackets. \\
+		\midrule
+		\lstinline|[tVar]:bracR_EQ()| & Surrounds the equation part of the [tVar] object with round brackets. \\	
+		\lstinline|[tVar]:bracB_EQ()| & \dots~ boxed brackets. \\
+		\lstinline|[tVar]:bracC_EQ()| & \dots~ curly brackets. \\
+		\midrule
+		\lstinline|[tVar]:bracR_N()| & Surrounds the numerical part of the [tVar] object with round brackets. \\	
+		\lstinline|[tVar]:bracB_N()| & \dots~ boxed brackets. \\
+		\lstinline|[tVar]:bracC_N()| & \dots~ curly brackets. \\	
+		\midrule
+		\lstinline|[tVar]:CRLF ([string])| & Inserts a line break in N after the [tVar] object and adds the string before and after the line break. \\
+		\lstinline|[tVar]:CRLFb([string])| & Inserts a line break in N before the [tVar] object and adds the string before and after the line break. \\
+		\lstinline|[tVar]:CRLF_EQ ([string])| & Inserts a line break in EQ after the [tVar] object and adds the string before and after the line break. \\
+		\lstinline|[tVar]:CRLFb_EQ([string])| & Inserts a line break in EQ before the [tVar] object and adds the string before and after the line break. \\
+		\lstinline|[tVar]:clean()| & Removes the calculation history from an object.\\
+		\lstinline|[tVar]:setUnit([string])| & Sets the unit for a tVar object.\\
+		\lstinline|[tVar]:setFormat([string])| & Sets the numberformat for a tVar Object. For details see Section \ref{sec:numberformat}\\
+		\bottomrule\end{tabular}
+\end{table}
+\subsubsection{Number Format \label{sec:numberformat}}
+The number format can be controlled globally and locally. The function \lstinline|[tVar]:setFormat([string])| defines the local number format of a tVar object. In case no local format was defined, tVar falls back to the global format set with \lstinline|tVar.NUMBERFORMAT = [string]|. 
+
+Common values are:
+\begin{tVarOUT}
+\begin{tVar}
+	# Variable a is set to $192.6345$\\\\
+	# Integer \\lstinline|%d|
+	a:=192.6345:setFormat("%d")
+	# Exponential \\lstinline|%.2E|
+	a:=192.6345:setFormat("%.2E")
+	# Float \\lstinline|%.3f|
+	a:=192.6345:setFormat("%.3f")
+
+\end{tVar}
+\end{tVarOUT}
+There is one case where TexVar automatically changes the number format: When the output precision return $0$ but the calculation precision is unequal to $0$ the number format is changed to \lstinline| %.3E|.
+\begin{tVarOUT}
+\begin{tVar}
+	# Variable a is set to $0.00001$. Default number format is \\lstinline|%.3f|. Calculation precision is $10$
+		a:=0.00001
+		b:=123432
+		c:=a*b
+\end{tVar}
+\end{tVarOUT}
+\subsubsection{Grouping Math Environments}
+\label{sec:groups}
+By default TexVar creates a new mathematical environment for every output (except plain text-output with \#). To group equations into one environment, you can enclose them with curly brackets. The group operator automatically adds an alignment symbol at the beginning of the line and a line-break at the end. If you want to suppress this behavior you can open the group with the command \lstinline|{plain|.
+\begin{lstlisting}
+\begin{tVar}
+	{
+		a:=1
+		b:=10
+		c:=3
+	}
+	d:=(a+b):bracR()/c
+	#It's also possible to create environments without line-breaks and alignment:
+	{plain
+		f:=3
+		#,~
+		g:=f+d
+	}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+{
+	a:=1
+	b:=10
+	c:=3
+}
+	d:=(a+b):bracR()/c
+#It's also possible to create environments without line-breaks and alignment:
+{plain
+	f:=3
+	#,~
+	g:=f+d
+}
+\end{tVar}
+\end{tVarOUT}
+\subsection{Global Parameters}
+\label{sec:globparam}
+Global parameters can be set during runtime and affect all commands. There are special parameters for units which are described in Section \ref{sec:global-parameters}.
+
+\begin{table}[H]\centering
+	\captionabove{Global parameters with default values and description}
+	\label{tab:globalparam}
+	\begin{tabular}{@{}lp{8cm}@{}}\toprule
+		\lstinline|tVar.NUMBERFORMAT = "%.3f"| & Defines the number format for printing. \\
+		\lstinline|tVar.MATH_ENVIRONMENT = "align"| & Defines the environment used around equations. \\
+		\lstinline|tVar.OUTPUT_MODE = "RES_EQ_N"| & Defines the outputmode (Section \ref*{sec:OUTPUT_PRINT}). \\
+		\lstinline|tVar.EQUATION_NUMBERING = true| & Disables and enables numeration of equations. \\
+		\lstinline|tVar.DECIMAL_SEPARATOR = "."| & Defines the decimal separator.\\
+		\lstinline|tVar.MATRIX_COMMAND = "mathbf"| & Defines the style for matrices. \\
+		\lstinline|tVar.MATRIX_EQUATION_AS_MATRIX = false| & Enables and disables output of a matrix as variable name or matrix with variable names\\
+		\lstinline|tVar.VECTOR_COMMAND = "vec"| & Defines the style for vectors. \\\midrule
+		
+		\lstinline|tVar.CALC_PRECISION = 10| & Defines the how many decimal places are used for comparison.\\
+		\lstinline|tVar.OUTPUT_DISABLED = false| & Disables the complete output.\\
+		\lstinline|tVar.REMOVE_ZEROS = true| & Removes trailing zeros from a decimal number. \\
+		\lstinline|tVar.REMOVE_DECIMAL_SEPARATOR = true| & In case \lstinline|tVar.REMOVE_DECIMAL_SEPARATOR| is true remove the decimal separator if all trailing zeros have been removed. Else show number with one decimal zero. (Only works if \lstinline|tVar.REMOVE_DECIMAL_SEPARATOR = true|)  \\\midrule
+		
+		\lstinline|tVar.DEBUG_MODE = "off"| & In case debugMode is set to "on" the equations are printed as \LaTeX code. \\
+		\lstinline|tVar.DEBUG_LOG_COMMANDS_TO_FILE = false | & Enables logging of interpreted commands. Creates a file tVarLog.log\\
+		\lstinline|tVar.OUTPUT_COLORED = false| & Prints all variables with value=nil red.\\
+		\bottomrule\end{tabular}
+\end{table}
+
+\subsubsection{Details on automatic removal of trailing zeros}
+The following example shows the difference between the global parameters \lstinline|tVar.REMOVE_DECIMAL_SEPARATOR| and \lstinline|tVar.REMOVE_ZEROS|. 
+If \lstinline|tVar.REMOVE_ZEROS| is disabled the number format from \lstinline|tVar.NUMBERFORMAT| get's applied.
+\begin{lstlisting}
+\begin{tVar}
+	#Default settings
+	{
+		a:=2.0
+		b:=3.3
+		c:=tVar.sqrt(a^2+b^2)
+	}
+	#Disable \\verb|tVar.REMOVE_DECIMAL_SEPARATOR|
+	tVar.REMOVE_DECIMAL_SEPARATOR = false
+	{
+		a:=2.0
+		b:=3.3
+		c:=tVar.sqrt(a^2+b^2)
+	}
+	#Disable \\verb|tVar.REMOVE_ZEROS|
+	tVar.REMOVE_ZEROS = false
+	{
+		a:=2.0
+		b:=3.3
+		c:=tVar.sqrt(a^2+b^2)
+	}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	#Default settings
+{
+	a:=2.0
+	b:=3.3
+	c:=tVar.sqrt(a^2+b^2)
+}
+	#Disable \\verb|tVar.REMOVE_DECIMAL_SEPARATOR|
+	tVar.REMOVE_DECIMAL_SEPARATOR = false
+{
+	a:=2.0
+	b:=3.3
+	c:=tVar.sqrt(a^2+b^2)
+}
+	#Disable \\verb|tVar.REMOVE_ZEROS|
+	tVar.REMOVE_ZEROS = false
+{
+	a:=2.0
+	b:=3.3
+	c:=tVar.sqrt(a^2+b^2)
+}
+	tVar.REMOVE_DECIMAL_SEPARATOR = true
+	tVar.REMOVE_ZEROS = true
+\end{tVar}
+\end{tVarOUT}
+\subsection{Plotting with Gnuplot}
+Plotting in TexVar is support via Gnuplot. The code describing the figure is generated in TexVar and is sent to Gnuplot which creates the graphics.
+\subsubsection{Configuration}
+For enabling plotting the path to the Gnuplot executable has to be set via a global parameter. By default its set to \lstinline|tVar.GNUPLOT_LIBRARY ="gnuplot"|. In case you work on a windows system and want to specify the absolute path to your Gnuplot install the command has to be \lstinline|tVar.GNUPLOT_LIBRARY =[==["WINDOWSPATH"]==]|.
+
+The Gnuplot terminal is by default \lstinline|tVar.GNUPLOT_TERMINAL = "postscript eps enhanced color font 'Helvetica,12'"| and the file extension is \lstinline|tVar.GNUPLOT_FILE_NAME_EXTENSION = "eps"|.
+\subsubsection{Creating a Plot}
+Every parameter set through \lstinline|[tPlot].*| is directly translated to a gnuplot command. Actually tPlot is only aware of the following commands
+\begin{table}[H]\centering
+	\begin{tabular}{@{}p{5.6cm}p{8cm}@{}}\toprule
+		\lstinline|tPlot:New(present[tPlot])| & Creates a new plot. Present is an optional parameter. If a value gets passed the configuration of the plot is used as template for the new plot. \\
+		\lstinline|[tPlot].steps = 0.1| & Resolution for functions \\
+		\lstinline|[tPlot].conf.size = "14cm,8cm"| & Size of the plot\\
+		\lstinline|[tPlot].xrange = "[0,10]"| & Range of the x axis and min and max value for function creation.\\
+		\lstinline|[tPlot]:add(f or {{1,2},{3,2}},"f(x)", "with line lt 1 lc 2")| & Adds a functions or points to the plot.\\
+		\lstinline|[tPlot]:plot()| & Generates the plot and returns the includegraphics command. \\
+		\bottomrule\end{tabular}
+\end{table}
+\begin{lstlisting}
+\begin{tVar}
+	f(x):=1/x
+	
+	plot1=tPlot:New()
+	plot1.xlabel = "{/ Symbol e}_c"
+	plot1.ylabel = "{/ Symbol s}_c"
+	plot1.steps = 0.001
+	
+	plot1.xtics = "0.1"
+	plot1.xrange = "[0:1]"
+	plot1.yrange = "[0:16]"
+	plot1.conf.size = "6cm ,6cm"
+	plot1:add(f,"f(x)", "with line lt 1 lc 2")
+	plot1:add({{0.2,6},{0.5,12}}, "pt", "with points lc 1")
+	#\\begin{center}
+		plot1:plot()
+	#\\end{center}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	tVar.GNUPLOT_LIBRARY=[==["C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot.exe"]==]
+	--tVar.GNUPLOT_LIBRARY="/usr/local/Cellar/gnuplot/5.0.1/bin/gnuplot"
+		f(x):=1/x
+		
+		plot1=tPlot:New()
+		plot1.xlabel = "{/ Symbol e}_c"
+		plot1.ylabel = "{/ Symbol s}_c"
+		plot1.steps = 0.001
+		
+		plot1.xtics = "0.2"
+		plot1.xrange = "[0:1]"
+		plot1.yrange = "[0:16]"
+		plot1.conf.size = "5cm ,5cm"
+		plot1:add(f,"f(x)", "with line lt 1 lc 2")
+		plot1:add({{0.2,6},{0.5,12}}, "pt", "with points lc 1")
+		#\\begin{center}
+		plot1:plot()
+		#\\end{center}
+\end{tVar}
+\end{tVarOUT}
+Currently TexVar only supports 2D plots and functions with one attribute. If you want to print a function with more than one attribute you can create a helper function.
+\begin{lstlisting}
+\begin{tVar}
+	-- use plot1 as template
+	plot2=tPlot:New(plot1)
+	
+	f(x,z):=(1/x)^z
+	-- helper functions with fixed z values
+	f_h_1(x):=f(x,2);
+	f_h_2(x):=f(x,1);
+	
+	plot2:add(f_h_1,"z=2","with line lt 1 lc 2")
+	plot2:add(f_h_2,"z=1","with line lt 1 lc 3")
+	
+	#\\begin{center}
+		plot2:plot()
+	#\\end{center}
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	-- use plot1 as template
+	plot2=tPlot:New(plot1)
+	
+	f(x,z):=(1/x)^z
+	f_h_1(x):=f(x,2);
+	f_h_2(x):=f(x,1);
+	
+	plot2:add(f_h_1,"z=2","with line lc 2")
+	plot2:add(f_h_2,"z=1","with line lc rgb 'red' lw 2")
+	
+	#\\begin{center}
+	plot2:plot()
+	#\\end{center}
+\end{tVar}
+\end{tVarOUT}
+\subsection{Mathematical Commands}
+The following subsections are just a listing of currently implemented mathematical functions.
+\subsubsection{General}
+These functions can be used with every tVar object.
+\begin{itemize}[noitemsep]
+	\item tVar.sqrt([tVar],[tVar])
+	\item tVar.PI
+	\item tVar.abs([tVar])
+	\item tVar.acos([tVar]) 
+	\item tVar.acosd([tVar]) 
+	\item tVar.cos([tVar])
+	\item tVar.cosd([tVar])
+	\item tVar.cosh([tVar])
+	\item tVar.asin([tVar])
+	\item tVar.asind([tVar])
+	\item tVar.sin([tVar])
+	\item tVar.sind([tVar])
+	\item tVar.sinh([tVar]) 
+	\item tVar.atan([tVar]) 
+	\item tVar.atand([tVar]) 
+	\item tVar.tan([tVar])
+	\item tVar.tand([tVar])
+	\item tVar.tanh([tVar])
+	\item tVar.ceil([tVar])
+	\item tVar.floor([tVar]) 
+	\item tVar.exp([tVar]) 
+	\item tVar.ln([tVar])
+	\item tVar.log10([tVar]) 
+	\item tVar.atan2(X[tVar],Y[tVar])
+	\item tVar.fact([tVar])
+\end{itemize}
+\subsubsection{Matrices and Vectors}
+These functions can only be used with tMat or tVec objects.
+\begin{itemize}[noitemsep]
+	\item {[tMat]:T()}
+	\item {[tMat]:Det()}
+	\item {[tMat]:Inv()}
+	\item {tVec.crossP([tVec],[tVec])}
+\end{itemize}
+\subsection{The Link Function}
+If you want to use your own functions within TexVar, you can use the Link function to link them to tVar functions.
+This only applies to functions that don't use TexVar objects for calculation. If you want to write a TexVar function see Section \ref{lbl:creatFun}.
+The following code shows the implementation of the factorial function with the link function.
+\begin{lstlisting}
+\begin{tVar}
+	function mycalcFactorial(n)
+		-- no tVar objects here just numbers
+		if n<=1 then return 1 end
+		return n*mycalcFactorial(n-1)
+	end
+	
+	-- link it
+	myfact = tVar.link(mycalcFactorial,"","!",nil,nil,nil,true)
+	
+	a:=10
+	b:=myfact(a)
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	function mycalcFactorial(n)
+	-- no tVar objects here just numbers
+	if n<=1 then return 1 end
+	return n*mycalcFactorial(n-1)
+	end
+	
+	-- link it
+	myfact = tVar.link(mycalcFactorial,"","!",nil,nil,nil,true)
+	
+	a:=10
+	b:=myfact(a)
+\end{tVar}
+\end{tVarOUT}
+The link function has the following attributes:
+\begin{itemize}
+	\item \verb|function|: The function that should be transformed to a TexVar function.
+	\item \verb|texBefore|: Text which is added before the return value.
+	\item \verb|texAfter|: Text which is added after the return value.
+	\item \verb|returntype (optional)|: Defines the type of the return objecte, possible values are tVar, tMat, tVec
+	\item \verb|inputUnit (optional)|: Required unit for input attributes. 
+	\item \verb|outputUnit (optional)|: Unit of returned function.
+	\item \verb|pipeUnit (optional)|: If true, the input and output unit is derived from the first passed argument.
+\end{itemize}
+
+All Lua math functions are implemented this way. 
+
+For example the Lua function \lstinline|math.atan2|:
+\begin{lstlisting}
+--- calculates inverse tangens with with appr. quadrant
+-- 
+-- @param opposite (tVar,number) values
+-- @param adjacent (tVar,number) values
+-- @return (tVar) 
+tVar.link(math.atan2,"\\text{atan2}\\left(","\\right)",nil,tVar.units("m"),tVar.units("rad"),false)
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	{
+	a:=3:setUnit("m")
+	b:=4:setUnit("m")
+	c:=tVar.atan2(a,b)
+	}
+\end{tVar}
+\end{tVarOUT}
+%\section{Unit based Calculations}\label{sec:unit-based-calculations}
+%This section describes the functionality and the concept of the unit based calculations of TexVar introduced in version $1.5.18$.
+%\subsection{The Concept}
+%Basically every unit is defined as a tree. Some units like meter only consist of one leaf, others like Mega Pascal get pretty complex:
+%\begin{tVarOUT}
+%	\begin{minipage}[t]{0.45\textwidth}
+%\begin{tVar}
+%	tVar.units.unitset["m"]:printStackTex()
+%\end{tVar}
+%	\end{minipage}
+%	\begin{minipage}[t]{0.45\textwidth}
+%\begin{tVar}
+%	tVar.units.unitset["MPa"]:printStackTex()
+%\end{tVar}
+%	\end{minipage}
+%\end{tVarOUT}
+%
+%Units with only one leaf are called base units. Every unit can be reduced to a tree of base units which makes it comparable to other units. If you set a unit for a variable in TexVar, the value is always converted to base units. For the output TexVar uses the preferred unit you defined with \verb|:setUnit()|. The following example show the difference between the real output and the stored values.
+%\begin{tVarOUT}
+%\begin{tVar}
+%	a:=10:setUnit("cm")
+%	# The value of a is: 
+%	tex.print(a.val .. "\\\\")
+%	# The unit of a is: 
+%	tex.print("\\si{" .. a.unit:toString() .. "}\\\\")
+%	# The preferred unit of a is: 
+%	tex.print("\\si{" .. a.prefUnit:toString() .. "}\\\\")
+%\end{tVar}
+%\end{tVarOUT}
+%\subsection{Special Functions}
+%The following list contains all functions which are used for units:
+%\begin{itemize}
+%	\item \verb|[tVar]:setUnit([string])|: tries to interpret the given string as unit. For example \si{m} is known as meter and \si{kN/m^2} is separated into \si{kN} divided by \si{m^2}, which are both known units \footnote{Powers are not recognized as such, which means that \si{m^2} is a unit, defined as \si{m} times \si{m}}. For those strings, describing units, you can use:
+%	\begin{itemize}
+%		\item Round brackets for enclosure,
+%		\item . for multiplication and
+%		\item / for division.
+%	\end{itemize}
+%	When you define a unit the value is multiplied with a factor to convert it to a base unit.
+%	\item \verb|[tVar]:clearUnit([string, optional])|: removes all unit information. If you define a unit with the string attribute the value is initially converted to this unit and the unit-information is removed afterwards. This comes in handy if you use empirical formulas which are not bound to units, for a demonstration have a look at the Example \ref{ssec:windchill}.
+%	\item \verb|[tVar]:setUText([string])|: Overrides the unit output, in case you want to have a specific format.
+%\end{itemize}
+%\begin{lstlisting}
+%\begin{tVar}
+%	{
+%		a:=10:setUnit("cm")
+%		b:=1.2:setUnit("mm")
+%		c:=a+b
+%	}
+%	# If you try to convert something to another unit TexVar gives you a possible solution containing the chosen unit.\\\\
+%	# Reasonable conversion:
+%	tVar.outRES(c:setUnit("m"))
+%	# Unreasonable conversion:
+%	tVar.outRES(c:setUnit("K.cm"))
+%	# It is always possible to override the output text of a unit:
+%	tVar.outRES(c:setUText("\\newton\\per\\meter"))
+%\end{tVar}
+%\end{lstlisting}
+%\begin{tVarOUT}
+%\begin{tVar}
+%{
+%	a:=10:setUnit("cm")
+%	b:=1.2:setUnit("mm")
+%	c:=a+b
+%}
+%# If you try to convert something to another unit TexVar gives you a possible solution containing the chosen unit.\\\\
+%# Reasonable conversion:
+%tVar.outRES(c:setUnit("m"))
+%# Unreasonable conversion:
+%tVar.outRES(c:setUnit("K.cm"))
+%# It is always possible to override the output text of a unit:
+%tVar.outRES(c:setUText("\\newton\\per\\meter"))
+%\end{tVar}
+%\end{tVarOUT}
+%\subsection{List of known Units \label{ssec:list_of_known_units}}
+%The following list is a dump of the global variable \verb|tVar.units.unitset| which holds all registered units.
+%%\begin{lstlisting}
+%%\begin{tVar}
+%%	local outp = {}
+%%	for uni,_ in pairs(tVar.units.unitset) do
+%%		table.insert(outp,"\\si{" .. uni .. "}")
+%%	end
+%%	table.sort(outp)
+%%	tex.print(table.concat(outp,", "))
+%%\end{tVar}
+%%\end{lstlisting}
+%\begin{tVarOUT}
+%\begin{tVar}
+%	local outp = {}
+%	for i,v in pairs(tVar.units.unitset) do
+%	table.insert(outp,"\\si{" .. i .. "}")
+%	end
+%	table.sort(outp)
+%	tex.print(table.concat(outp,", "))
+%\end{tVar}
+%\end{tVarOUT}
+%\subsection{Defining new Units}
+%As we already know, a unit consist of other units. To create a new unit you have to link other units with factors and operations together. Possible operations are:
+%\begin{itemize}
+%	\item \verb|[units]:mul(factor,[units] optional)|
+%	\item \verb|[units]:div(factor,[units] optional)|
+%	\item \verb|[units]:root(scale)| 
+%	\item \verb|[units]:add(scale)|\footnote{The add command is currently not supported by the unit library. In favour of future development all required functions have already been implemented.}
+%\end{itemize}
+%Afterwards you have to register your unit to the global unit stack and assign a unique name with \verb|:addUnit([string])|. In the following example the unit \si{Ar} is defined by $100 \cdot \si{m^2}$, afterwards assigned to a variable, which is then converted to \si{cm^2}.
+%\begin{lstlisting}
+%\begin{tVar}
+%tVar.units():mul(100,tVar.units("m^2")):addUnit("Ar")
+%A:=12:setUnit("Ar")
+%A:=A:setUnit("cm^2"):outRES()
+%\end{tVar}
+%\end{lstlisting}
+%\begin{tVarOUT}
+%\begin{tVar}
+%	tVar.units():mul(100,tVar.units("m^2")):addUnit("Ar")
+%	A:=12:setUnit("Ar")
+%	A:=A:setUnit("cm^2"):outRES()
+%\end{tVar}
+%\end{tVarOUT}
+%All units are registered in a file called \verb|unit_definitions.lua|. It's found in the tVar folder inside lib. At the moment only a small amount of units is implemented.
+\subsection{Global Parameters}\label{sec:global-parameters}
+The following global parameters control the behavior of the unit functions.
+
+\begin{table}[!h]\centering
+	\captionabove{Global parameters for units with default values and description}
+	\label{tab:globalparam2}
+	\begin{tabular}{@{}lp{8cm}@{}}\toprule
+		\lstinline|tVar.UNIT_COMMAND = "\\si"| & Defines the \LaTeX-Command for units \\
+		\lstinline|tVar.UNIT_N_IN_BASE_UNITS = true| & Output for the numerical part of the equation is converted to base units.  \\
+		\lstinline|tVar.UNIT_N_WITH_UNITS = false| & Output for the numerical part contains units \\
+		\lstinline|tVar.UNIT_SHOW_IN_MATRIX = false| & Shows units in matrices. \\
+		\bottomrule\end{tabular}
+\end{table}
+
+The following example demonstrates the usage of the global parameters from table \ref{tab:globalparam2}.
+\begin{lstlisting}
+\begin{tVar}
+	tVar.UNIT_N_IN_BASE_UNITS = true
+	tVar.UNIT_N_WITH_UNITS = false
+	
+	a:=10:setUnit("cm")
+	b:=3:setUnit("m")
+	
+	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
+	
+	# Set \\verb|tVar.N_outputInBaseUnits = false| and \\verb|tVar.N_outputWithUnits = true|
+	tVar.UNIT_N_IN_BASE_UNITS = false
+	tVar.UNIT_N_WITH_UNITS = true
+	
+	a:=10:setUnit("cm");
+	b:=3:setUnit("m");
+	
+	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
+	
+	tVar.UNIT_N_IN_BASE_UNITS = false
+	tVar.UNIT_N_WITH_UNITS = true
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	tVar.UNIT_N_IN_BASE_UNITS = true
+	tVar.UNIT_N_WITH_UNITS = false
+	
+	a:=10:setUnit("cm")
+	b:=3:setUnit("m")
+	
+	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
+	
+	# Set \\verb|tVar.N_outputInBaseUnits = false| and \\verb|tVar.N_outputWithUnits = true|
+	tVar.UNIT_N_IN_BASE_UNITS = false
+	tVar.UNIT_N_WITH_UNITS = true
+	
+	a:=10:setUnit("cm");
+	b:=3:setUnit("m");
+	
+	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
+	
+	tVar.UNIT_N_IN_BASE_UNITS = false
+	tVar.UNIT_N_WITH_UNITS = true
+\end{tVar}
+\end{tVarOUT}
+\section{Examples}
+\subsection{U-Value}
+This is a very simple example using only the basic functionality of TexVar.
+\begin{lstlisting}
+Calculating the U-Value for an element with two layers.\\
+\begin{tVar}
+	#\\noindent Resistance of surface
+	{plain
+		R_se:= 0.3:setUnit("m^2.K/W")
+		#,~
+		R_si:= 0.13:setUnit("m^2.K/W")
+	}
+	#Parameters for elements
+	{
+		d_1 := 0.20:setUnit("m")
+		\\lambda_1 := 0.035:setUnit("W/(m.K)")
+		d_2 := 0.10:setUnit("m")
+		\\lambda_2 := 0.5:setUnit("W/(m.K)")
+	}
+	#Calculate thermal resistance
+	R := (R_se + d_1/lambda_1 + d_2/lambda_2 + R_si):setUnit("m^2.K/W")
+	#Calculate U-Value
+	U:=(1/R):setUnit("W/(m^2.K)")
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+Calculating the U-Value for an element with two layers.\\
+\begin{tVar}
+	#\\noindent Resistance of surface
+	{plain
+		R_se:= 0.3:setUnit("m^2.K/W")
+		#,~
+		R_si:= 0.13:setUnit("m^2.K/W")
+	}
+	#Parameters for elements
+	{
+		d_1 := 0.20:setUnit("m")
+		\\lambda_1 := 0.035:setUnit("W/(m.K)")
+		d_2 := 0.10:setUnit("m")
+		\\lambda_2 := 0.5:setUnit("W/(m.K)")
+	}
+	#Calculate thermal resistance
+	R := (R_se + d_1/lambda_1 + d_2/lambda_2 + R_si):setUnit("m^2.K/W")
+	#Calculate U-Value
+	U:=(1/R):setUnit("W/(m^2.K)")
+\end{tVar}
+\end{tVarOUT}
+\subsection{Rotating a Vector}
+This example shows the usage of the parameter \lstinline|tMat.eqTexAsMatrix| as mentioned in Section \ref{sec:globparam}.
+\begin{lstlisting}
+\begin{tVar}
+tMat.MATRIX_EQUATION_AS_MATRIX = true
+
+#Rotation angle in degree
+\\theta:=45:setUnit("°")
+
+#Rotation matrix in R2
+{
+A := {{tVar.cos(theta),-tVar.sin(theta)},{tVar.sin(theta),tVar.cos(theta)}}:outRES_EQ()
+e_x:={1,0}
+}
+
+
+tMat.MATRIX_EQUATION_AS_MATRIX = false
+e:=(A*e_x)
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+tMat.MATRIX_EQUATION_AS_MATRIX = true
+#Rotation angle in degree
+\\theta:=45:setUnit("°")
+
+#Rotation matrix in R2
+{
+A := {{tVar.cos(theta),-tVar.sin(theta)},{tVar.sin(theta),tVar.cos(theta)}}:outRES_EQ()
+e_x:={1,0}
+}
+
+tMat.MATRIX_EQUATION_AS_MATRIX = false
+e:=(A*e_x)
+\end{tVar}
+\end{tVarOUT}
+\subsection{Vector Calculations - Custom Function}
+This example shows how to create a custom TexVar function for calculating the angle between two vectors. The function has an extra parameter for disabling printing.
+\begin{lstlisting}
+\begin{tVar}
+	
+tVar.OUTPUT_MODE = "RES_EQ"	
+function angleBetweenVectors(a,b,disablePrinting)
+	if disablePrinting then
+		tVar.OUTPUT_DISABLED = true
+	end
+	
+	#Calculate the length of the vectors
+	
+	len_a:=tVar.sqrt(a*a)
+	len_b:=tVar.sqrt(b*b)
+	
+	#Normalize the vectors
+	
+	a_n:=(a/len_a)
+	b_n:=(b/len_b)
+	
+	\\alpha:=tVar.acosd(a_n*b_n):setUnit("°")
+	
+	if disablePrinting then
+		tVar.OUTPUT_DISABLED = false
+	end
+	
+	return alpha
+end
+	
+#With output
+{
+	v_1:={1,0.4,0.5}
+	v_2:={0.3,1,0}
+}
+	
+\\alpha_1:=angleBetweenVectors(v_1,v_2)
+	
+#Without output
+{
+	v_3:={4,0.2,5}
+	v_4:={9.3,8,1}
+}
+\\alpha_2:=angleBetweenVectors(v_3,v_4,true)
+\end{tVar}
+\end{lstlisting}
+\begin{tVarOUT}
+\begin{tVar}
+	
+tVar.OUTPUT_MODE = "RES_EQ"	
+function angleBetweenVectors(a,b,disablePrinting)
+	if disablePrinting then
+		tVar.OUTPUT_DISABLED = true
+	end
+
+	#Calculate the length of the vectors
+
+	len_a:=tVar.sqrt(a*a)
+	len_b:=tVar.sqrt(b*b)
+
+	#Normalize the vectors
+
+	a_n:=(a/len_a)
+	b_n:=(b/len_b)
+
+	\\alpha:=tVar.acos(a_n*b_n):setUnit("°")
+
+	if disablePrinting then
+		tVar.OUTPUT_DISABLED = false
+	end
+
+	return alpha
+end
+
+#With output
+{
+v_1:={1,0.4,0.5}
+v_2:={0.3,1,0}
+}
+
+\\alpha_1:=angleBetweenVectors(v_1,v_2)
+
+#Without output
+{
+	v_3:={4,0.2,5}
+	v_4:={9.3,8,1}
+}
+\\alpha_2:=angleBetweenVectors(v_3,v_4,true)
+
+\end{tVar}
+\end{tVarOUT}
+
+%\subsection{Trigonometric Functions}
+%Trigonometric functions are capable of converting angles automatically into radiants.
+%\begin{lstlisting}
+%\begin{tVar}
+%#Rectangular triangle defined by the following values:
+%{
+%a:=3:setUnit("cm")
+%b:=40:setUnit("mm")
+%}
+%c:=tVar.sqrt(a^2+b^2):setUnit("m")
+%{
+%\\alpha:=tVar.asin(b/c):setUnit("°")
+%\\beta:=tVar.asin(a/c):setUnit("°")
+%}
+%tVar.outRES(tVar:New(180):setUnit("°")-alpha-beta)
+%a_2:=(c*tVar.cos(alpha)):setUnit("m")
+%if a_2 == a then
+%# Comparing Units worked!
+%else
+%# Comparing Units failed!
+%end
+%\end{tVar}
+%\end{lstlisting}
+%\begin{tVarOUT}
+%\begin{tVar}
+%	#Rectangular triangle defined by the following values:
+%	{
+%		a:=3:setUnit("cm")
+%		b:=40:setUnit("mm")
+%	}
+%	c:=tVar.sqrt(a^2+b^2):setUnit("m")
+%	{
+%		\\alpha:=tVar.asin(b/c):setUnit("°")
+%		\\beta:=tVar.asin(a/c):setUnit("°")
+%	}
+%	tVar.outRES(tVar:New(180):setUnit("°")-alpha-beta)
+%	a_2:=(c*tVar.cos(alpha)):setUnit("m")
+%	if a_2 == a then
+%	# Comparing Units worked!
+%	else
+%	# Comparing Units failed!
+%	end
+%\end{tVar}
+%\end{tVarOUT}
+%\subsection{Windchill \label{ssec:windchill}}
+%The purpose of this example is to demonstrate the usage of the \verb|:clearUnit()| function when doing calculations based on empiric formulas. 
+%\begin{lstlisting}
+%\begin{tVar}
+%# Windvelocity:
+%V:=3:setUnit("m/s")
+%# Air temperature:
+%T_a:=10:setUnit("°C")
+%# Windchill (without removing units, throws error):
+%T_wc:=(13.12 + 0.6215*T_a - 11.37*V^0.16+0.3965*T_a*V^0.16):CRLF_EQ("=")
+%# Remove units and transform %%V%% to km/h
+%V:=V:clearUnit("km/h");
+%T_a:=T_a:clearUnit();
+%T_wc:=(13.12 + 0.6215*T_a - 11.37*V^0.16+0.3965*T_a*V^0.16):setUnit("°C")
+%\end{tVar}
+%\end{lstlisting}
+%\begin{tVarOUT}
+%\begin{tVar}
+%	# Windvelocity:
+%	V:=3:setUnit("m/s")
+%	# Air temperature:
+%	T_a:=10:setUnit("°C")
+%	# Windchill (without removing units, throws error):
+%	T_wc:=(13.12 + 0.6215*T_a - 11.37*V^0.16+0.3965*T_a*V^0.16):CRLF_EQ("=")
+%\end{tVar}
+%\begin{tVar}
+%	# Remove units and transform %%V%% to km/h
+%	V:=V:clearUnit("km/h");
+%	T_a:=T_a:clearUnit();
+%	T_wc:=(13.12 + 0.6215*T_a - 11.37*V^0.16+0.3965*T_a*V^0.16):CRLF_EQ("="):setUnit("°C")
+%\end{tVar}
+%\end{tVarOUT}
+\end{document}

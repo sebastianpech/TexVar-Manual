@@ -509,6 +509,7 @@ Global parameters can be set during runtime and affect all commands. There are s
 		\lstinline|tVar.DECIMAL_SEPARATOR = "."| & Defines the decimal separator.\\
 		\lstinline|tVar.MATRIX_COMMAND = "mathbf"| & Defines the style for matrices. \\
 		\lstinline|tVar.MATRIX_EQUATION_AS_MATRIX = false| & Enables and disables output of a matrix as variable name or matrix with variable names\\
+		\lstinline|tVar.UNIT_COMMAND = "\\si""| & Sets the macro for displaying units.\\
 		\lstinline|tVar.VECTOR_COMMAND = "vec"| & Defines the style for vectors. \\\midrule
 		
 		\lstinline|tVar.CALC_PRECISION = 10| & Defines the how many decimal places are used for comparison.\\
@@ -895,67 +896,6 @@ tVar.link(math.atan2,"\\text{atan2}\\left(","\\right)",nil,tVar.units("m"),tVar.
 %\end{tVar}
 %\end{tVarOUT}
 %All units are registered in a file called \verb|unit_definitions.lua|. It's found in the tVar folder inside lib. At the moment only a small amount of units is implemented.
-\subsection{Global Parameters}\label{sec:global-parameters}
-The following global parameters control the behavior of the unit functions.
-
-\begin{table}[!h]\centering
-	\captionabove{Global parameters for units with default values and description}
-	\label{tab:globalparam2}
-	\begin{tabular}{@{}lp{8cm}@{}}\toprule
-		\lstinline|tVar.UNIT_COMMAND = "\\si"| & Defines the \LaTeX-Command for units \\
-		\lstinline|tVar.UNIT_N_IN_BASE_UNITS = true| & Output for the numerical part of the equation is converted to base units.  \\
-		\lstinline|tVar.UNIT_N_WITH_UNITS = false| & Output for the numerical part contains units \\
-		\lstinline|tVar.UNIT_SHOW_IN_MATRIX = false| & Shows units in matrices. \\
-		\bottomrule\end{tabular}
-\end{table}
-
-The following example demonstrates the usage of the global parameters from table \ref{tab:globalparam2}.
-\begin{lstlisting}
-\begin{tVar}
-	tVar.UNIT_N_IN_BASE_UNITS = true
-	tVar.UNIT_N_WITH_UNITS = false
-	
-	a:=10:setUnit("cm")
-	b:=3:setUnit("m")
-	
-	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
-	
-	# Set \\verb|tVar.N_outputInBaseUnits = false| and \\verb|tVar.N_outputWithUnits = true|
-	tVar.UNIT_N_IN_BASE_UNITS = false
-	tVar.UNIT_N_WITH_UNITS = true
-	
-	a:=10:setUnit("cm");
-	b:=3:setUnit("m");
-	
-	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
-	
-	tVar.UNIT_N_IN_BASE_UNITS = false
-	tVar.UNIT_N_WITH_UNITS = true
-\end{tVar}
-\end{lstlisting}
-\begin{tVarOUT}
-\begin{tVar}
-	tVar.UNIT_N_IN_BASE_UNITS = true
-	tVar.UNIT_N_WITH_UNITS = false
-	
-	a:=10:setUnit("cm")
-	b:=3:setUnit("m")
-	
-	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
-	
-	# Set \\verb|tVar.N_outputInBaseUnits = false| and \\verb|tVar.N_outputWithUnits = true|
-	tVar.UNIT_N_IN_BASE_UNITS = false
-	tVar.UNIT_N_WITH_UNITS = true
-	
-	a:=10:setUnit("cm");
-	b:=3:setUnit("m");
-	
-	c:=(tVar.sqrt(a^2+b^2)):setUnit("cm")
-	
-	tVar.UNIT_N_IN_BASE_UNITS = false
-	tVar.UNIT_N_WITH_UNITS = true
-\end{tVar}
-\end{tVarOUT}
 \section{Examples}
 \subsection{U-Value}
 This is a very simple example using only the basic functionality of TexVar.

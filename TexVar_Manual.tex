@@ -15,13 +15,15 @@
 \mdfdefinestyle{tVarSTYLE}
 {
 linewidth=1pt,
-innerleftmargin=0cm,
+innerleftmargin=0.5cm,
 innertopmargin=0cm,
 userdefinedwidth=13cm,
 align=center,
 frametitle={\hfill Output},
 rightline=false,
-leftline=false
+leftline=false,
+backgroundcolor=gray!10,
+needspace=20em
 }
 
 %\begin{luacode*}
@@ -58,7 +60,12 @@ leftline=false
 \maketitle
 \tableofcontents
 \section{Description}
-TexVar (short tVar) is a basic \LaTeX~math calculations tool written in Lua. For integration into \LaTeX~it has to be used together with LuaLaTeX. Compared to software like Mathcad TexVar is a lot more flexible. You can fill custom designed tables with results, do calculations within text documents and print beautiful LaTeX equations. The current version also supports 2D-plotting with gnuplot.
+TexVar (short tVar) is a basic \LaTeX~math calculations tool written in Lua.
+For integration into \LaTeX~it has to be used together with LuaLaTeX. Compared
+to software like Mathcad TexVar is a lot more flexible. You can fill custom
+designed tables with results, do calculations within text documents and print
+beautiful LaTeX equations. The current version also supports 2D-plotting with
+gnuplot.
 \section{Installation}
 \subsection{Prerequisites}
 The following software is needed in order to use TexVar:
@@ -67,13 +74,25 @@ The following software is needed in order to use TexVar:
 	\item LuaLaTeX (MikTex or Texlive)
 	\item GnuPlot 5.0 (only needed for plotting)
 \end{itemize}
-By default the command \verb|\si{}| is used for displaying units, so the siunitx package is mandatory. If you want to define your own command you can change the value of \verb|tVar.unitCommand = "\\si"|. 
+By default the command \verb|\si{}| is used for displaying units, so the
+siunitx package is mandatory. If you want to define your own command you can
+change the value of \verb|tVar.unitCommand = "\\si"|. 
 \subsection{Installation}
-Download TexVar from \url{http://texvar.projectzoo.at/} and copy the folder \emph{tVar} and the file \emph{texvar.sty} (subfolder package) to a location that is visible to \LaTeX. (e.g. the folder your *.tex file is in or global \LaTeX-folder \footnote{You can find information on global \LaTeX-folders at\url{https://www.math.hmc.edu/computing/support/tex/installing/}})
+Download TexVar from \url{https://gitlab.com/spech/TexVar} and copy the folder
+\emph{tVar} and the file \emph{texvar.sty} (subfolder package) to a location
+that is visible to \LaTeX. (e.g. the folder your *.tex file is in or a global
+\LaTeX-folder \footnote{You can find information on global \LaTeX-folders
+at\url{https://www.math.hmc.edu/computing/support/tex/installing/}})
 \subsubsection{Configuration for Gnuplot}
-In order to use Gnuplot with TexVar you have to allow LuaLaTeX to call external commands during runtime. This works through the command-line switch \lstinline[language=Bash]|--shell-escape|. Your complete call for LuaLaTeX could look like this: \lstinline[language=Bash]|lualatex -synctex=1 -interaction=nonstopmode --shell-escape %.tex|. 
+In order to use Gnuplot with TexVar you have to allow LuaLaTeX to call external
+commands during runtime. This works through the command-line switch
+\lstinline[language=Bash]|--shell-escape|. Your complete call for LuaLaTeX
+could look like this: \lstinline[language=Bash]|lualatex -synctex=1
+-interaction=nonstopmode --shell-escape %.tex|. 
 \section{Getting Started - Hello World}
-To ensure your installation is working test the following code. When using an luacode based environment like tVar it's important that the commands \lstinline|\begin{tVar} \end{tVar}| are \emph{not indented}.
+To ensure your installation is working test the following code. When using an
+luacode based environment like tVar it's important that the commands
+\lstinline|\begin{tVar} \end{tVar}| are \emph{not indented}.
 \begin{lstlisting}
 \documentclass{article}
 %
@@ -119,12 +138,15 @@ c:=a+b
 \end{tVar}
 The result is: \tv{c:outRES()}
 \end{tVarOUT}
-Generally, there are two key commands the TexVar interpreter searches for \footnote{Details on these key commands are discussed in Section \ref{lbl:tvarcommands}}:
+Generally, there are two key commands the TexVar interpreter searches for
+\footnote{Details on these key commands are discussed in Section
+\ref{lbl:tvarcommands}}:
 \begin{enumerate}
 	\item \#, for text output
 	\item :=, for calculations and assignments
 \end{enumerate}
-Every other command is directly forwarded to the Lua interpreter. This means you can write any Lua code you want inside the tVar environment. 
+Every other command is directly forwarded to the Lua interpreter. This means
+you can write any Lua code you want inside the tVar environment. 
 \begin{lstlisting}
 \begin{tVar}
 	function mypow(a,b)
@@ -155,7 +177,8 @@ TexVar knows three types of variables:
 	\item[tMat] is used for matrices.
 	\item[tVec] is used for vectors.
 \end{labeling}
-The following code generates a variable of each type. Every assignment is made with $:=$.
+The following code generates a variable of each type. Every assignment is made
+with $:=$.
 \begin{lstlisting}
 \begin{tVar}
 	a:=13
@@ -171,7 +194,11 @@ A:={{1,0},{2,4},{3,9.1}}
 \end{tVar}
 \end{tVarOUT}
 \subsubsection{Creating Variables in Equations}
-New variables can also be created inside equations. The notation for vectors and matrices is explained in Section \ref{lbl:creatingVars}. Lua knows - by default - how to do calculations with numbers, so any equation which does not contain tVar objects, can only be printed as it's result. Any mathematical operation with a tVar object and a decimal number results in a tVar value. 
+New variables can also be created inside equations. The notation for vectors
+and matrices is explained in Section \ref{lbl:creatingVars}. Lua knows - by
+default - how to do calculations with numbers, so any equation which does not
+contain tVar objects, can only be printed as it's result. Any mathematical
+operation with a tVar object and a decimal number results in a tVar value. 
 \begin{lstlisting}
 \begin{tVar}
 	# Variable a is created from the equation ...
@@ -200,7 +227,10 @@ c:={{1,2,3},{4,2,6},{1,3,2}}*{1,2,3}*a
 \end{tVarOUT}
 \subsubsection{Auto-Formatting of variable names}
 \label{lbl:autoformatting}
-The \LaTeX-representation of a variable is automatically generated from the variable name. The first occurrence of an underline starts the subscript the first occurrence of a double underline starts the superscript. Every other underline becomes a comma.
+The \LaTeX-representation of a variable is automatically generated from the
+variable name. The first occurrence of an underline starts the subscript the
+first occurrence of a double underline starts the superscript. Every other
+underline becomes a comma.
 \begin{lstlisting}
 \begin{tVar}
 	a_1_3:=13
@@ -219,7 +249,9 @@ The \LaTeX-representation of a variable is automatically generated from the vari
 \end{tVarOUT}
 \subsection{Creating Functions}
 \label{lbl:creatFun}
-Functions can easily be defined with the following syntax. The auto-formatting of function names and attribute names works according to Section \ref{lbl:autoformatting}.
+Functions can easily be defined with the following syntax. The auto-formatting
+of function names and attribute names works according to Section
+\ref{lbl:autoformatting}.
 \begin{lstlisting}
 \begin{tVar}
 	f(x,y):=x^2+y^2+4
@@ -233,7 +265,9 @@ a:=f(2,3)+11
 \end{tVar}
 \end{tVarOUT}
 \subsection{Indexing Matrices and Vectors}
-The syntax for indexing a matrix is similar to the Matlab syntax. To access a matrix you have to use square brackets and a string as key. The key has to be formatted according to the following examples.
+The syntax for indexing a matrix is similar to the Matlab syntax. To access a
+matrix you have to use square brackets and a string as key. The key has to be
+formatted according to the following examples.
 \begin{lstlisting}
 \begin{tVar}
 	A:={{1,2,6},{2,4,6},{7,6,9}}
@@ -286,11 +320,14 @@ The syntax for indexing a matrix is similar to the Matlab syntax. To access a ma
 }
 \end{tVar}
 \end{tVarOUT}
-The command \lstinline|{plain }| groups equations to one math environment. For details see Section \ref{sec:groups}
+The command \lstinline|{plain }| groups equations to one math environment. For
+details see Section \ref{sec:groups}
 \subsection{Output}
 \subsubsection{print()}
 \label{sec:OUTPUT_PRINT}
-The \lstinline|[tVar]:print()| command creates the output according to the global parameter \lstinline|tVar.OUTPUT_MODE|. The following options are supported:\\
+The \lstinline|[tVar]:print()| command creates the output according to the
+global parameter \lstinline|tVar.OUTPUT_MODE|. The following options are
+supported:\\
 \begin{tVarOUT}
 \begin{tVar}
 {
@@ -309,7 +346,11 @@ The \lstinline|[tVar]:print()| command creates the output according to the globa
 	c:print()
 \end{tVar}
 \end{tVarOUT}
-If you do your calculations inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the \lstinline|[tVar]:print()| command is automatically added to your calculations. This means \lstinline|c:=(a+b)| creates an output using the \lstinline|[tVar]:print()| command. To suppress the automatic output just add a ";" at the end of the line.
+If you do your calculations inside \lstinline|\begin{tVar}| and
+\lstinline|\end{tVar}| the \lstinline|[tVar]:print()| command is automatically
+added to your calculations. This means \lstinline|c:=(a+b)| creates an output
+using the \lstinline|[tVar]:print()| command. To suppress the automatic output
+just add a ";" at the end of the line.
 \begin{lstlisting}
 \begin{tVar}
 	# With output:
@@ -338,9 +379,17 @@ c:=a+b
 \end{tVar}
 \end{tVarOUT}
 \subsubsection{outRES()}
-The \lstinline|[tVar]:outRES()| command is equal to the combination of \lstinline|[tVar]:print()| with \lstinline|tVar.OUTPUT\_MODE = "RES"|. If you do your calculations inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the \lstinline|[tVar]:outRES()| command is automatically added to any assignment of a new variable. That means \lstinline|a:=10| creates and output using the \lstinline|[tVar]:outRES()| command.
+The \lstinline|[tVar]:outRES()| command is equal to the combination of
+\lstinline|[tVar]:print()| with \lstinline|tVar.OUTPUT\_MODE = "RES"|. If you
+do your calculations inside \lstinline|\begin{tVar}| and
+\lstinline|\end{tVar}| the \lstinline|[tVar]:outRES()| command is automatically
+added to any assignment of a new variable. That means \lstinline|a:=10| creates
+and output using the \lstinline|[tVar]:outRES()| command.
 
-In some cases you might want to print an equation without assigning it to a variable. This can be achieved by directly calling the function \lstinline|tVar.outRES([tVar])| (now with a dot) and passing your equation as argument to the function.
+In some cases you might want to print an equation without assigning it to a
+variable. This can be achieved by directly calling the function
+\lstinline|tVar.outRES([tVar])| (now with a dot) and passing your equation as
+argument to the function.
 \begin{lstlisting}
 \begin{tVar}
 	a:=2
@@ -357,22 +406,36 @@ In some cases you might want to print an equation without assigning it to a vari
 	tVar.outRES((a+b)/2+b)
 \end{tVar}
 \end{tVarOUT}
-This method also works for the output commands listed in Section \ref{sec:outputcommands}.
+This method also works for the output commands listed in Section
+\ref{sec:outputcommands}.
 \subsubsection{Other Output Commands}
 \label{sec:outputcommands}
-For every output mode mentioned in Section \ref{sec:OUTPUT_PRINT} there is an equal output function.
+For every output mode mentioned in Section \ref{sec:OUTPUT_PRINT} there is an
+equal output function.
 \begin{labeling}{RESxEQxxN}
 	\item[RES\_EQ\_N] \lstinline|[tVar]:outRES_EQ_N(numbering,environment)|
 	\item[RES\_EQ] \lstinline|[tVar]:outRES_EQ(numbering,environment)|
 	\item[RES] \lstinline|[tVar]:outRES(numbering,environment)|
 \end{labeling}
-The attributes \emph{numbering} and \emph{environment} are boolean values and define if the output is created with numeration and a math environment. Both parameters are optional and can also be defined via the global parameters \lstinline|tVar.EQUATION_NUMBERING| and  \lstinline|tVar.MATH_ENVIRONMENT|\footnote{In case \lstinline|tVar.MATH_ENVIRONMENT| is set to "" no math environment is used.}
+The attributes \emph{numbering} and \emph{environment} are boolean values and
+define if the output is created with numeration and a math environment. Both
+parameters are optional and can also be defined via the global parameters
+\lstinline|tVar.EQUATION_NUMBERING| and
+\lstinline|tVar.MATH_ENVIRONMENT|\footnote{In case
+\lstinline|tVar.MATH_ENVIRONMENT| is set to "" no math environment is used.}
 
-Additionally there are the functions  \lstinline|[tVar]:out()| for printing the result without the variable name and \lstinline|[tVar]:outN()| for printing the variable name the equation with numbers and the result.
+Additionally there are the functions  \lstinline|[tVar]:out()| for printing the
+result without the variable name and \lstinline|[tVar]:outN()| for printing the
+variable name the equation with numbers and the result.
+
 \subsubsection{\LaTeX~Output}
-Inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the symbol \# can be used to print a text in \LaTeX. Inside such a text you can use \%\%[tVar]\%\% to print a variables name and \$\$[tVar]\$\$ to print a variables value.
+Inside \lstinline|\begin{tVar}| and  \lstinline|\end{tVar}| the symbol \# can
+be used to print a text in \LaTeX. Inside such a text you can use
+\%\%[tVar]\%\% to print a variables name and \$\$[tVar]\$\$ to print a
+variables value.
 
-\LaTeX~commands used within \# have to be escaped. For example \lstinline|\textbf{}| has to be written as \lstinline|\\textbf{}|. 
+\LaTeX~commands used within \# have to be escaped. For example
+\lstinline|\textbf{}| has to be written as \lstinline|\\textbf{}|. 
 \begin{lstlisting}
 \begin{tVar}
 	#\\subsection*{First Subsection}
@@ -390,7 +453,8 @@ a_1_2:=22.4:setUnit("m")
 \end{tVar}
 \end{tVarOUT}
 \subsubsection{Precise Manipulation of Output}
-The following functions manipulate equations directly and can be used for detailed formatting.
+The following functions manipulate equations directly and can be used for
+detailed formatting.
 \begin{lstlisting}
 \begin{tVar}
 	a:=10:setUnit("m")
@@ -435,7 +499,10 @@ The following functions manipulate equations directly and can be used for detail
 		\bottomrule\end{tabular}
 \end{table}
 \subsubsection{Number Format \label{sec:numberformat}}
-The number format can be controlled globally and locally. The function \lstinline|[tVar]:setFormat([string])| defines the local number format of a tVar object. In case no local format was defined, tVar falls back to the global format set with \lstinline|tVar.NUMBERFORMAT = [string]|. 
+The number format can be controlled globally and locally. The function
+\lstinline|[tVar]:setFormat([string])| defines the local number format of a
+tVar object. In case no local format was defined, tVar falls back to the global
+format set with \lstinline|tVar.NUMBERFORMAT = [string]|. 
 
 Common values are:
 \begin{tVarOUT}
@@ -450,7 +517,9 @@ Common values are:
 
 \end{tVar}
 \end{tVarOUT}
-There is one case where TexVar automatically changes the number format: When the output precision return $0$ but the calculation precision is unequal to $0$ the number format is changed to \lstinline| %.3E|.
+There is one case where TexVar automatically changes the number format: When
+the output precision return $0$ but the calculation precision is unequal to $0$
+the number format is changed to \lstinline| %.3E|.
 \begin{tVarOUT}
 \begin{tVar}
 	# Variable a is set to $0.00001$. Default number format is \\lstinline|%.3f|. Calculation precision is $10$
@@ -461,7 +530,12 @@ There is one case where TexVar automatically changes the number format: When the
 \end{tVarOUT}
 \subsubsection{Grouping Math Environments}
 \label{sec:groups}
-By default TexVar creates a new mathematical environment for every output (except plain text-output with \#). To group equations into one environment, you can enclose them with curly brackets. The group operator automatically adds an alignment symbol at the beginning of the line and a line-break at the end. If you want to suppress this behavior you can open the group with the command \lstinline|{plain|.
+By default TexVar creates a new mathematical environment for every output
+(except plain text-output with \#). To group equations into one environment,
+you can enclose them with curly brackets. The group operator automatically adds
+an alignment symbol at the beginning of the line and a line-break at the end.
+If you want to suppress this behavior you can open the group with the command
+\lstinline|{plain|.
 \begin{lstlisting}
 \begin{tVar}
 	{
@@ -496,7 +570,7 @@ By default TexVar creates a new mathematical environment for every output (excep
 \end{tVarOUT}
 \subsection{Global Parameters}
 \label{sec:globparam}
-Global parameters can be set during runtime and affect all commands. There are special parameters for units which are described in Section \ref{sec:global-parameters}.
+Global parameters can be set during runtime and affect all commands.
 
 \begin{table}[H]\centering
 	\captionabove{Global parameters with default values and description}
@@ -524,8 +598,10 @@ Global parameters can be set during runtime and affect all commands. There are s
 \end{table}
 
 \subsubsection{Details on automatic removal of trailing zeros}
-The following example shows the difference between the global parameters \lstinline|tVar.REMOVE_DECIMAL_SEPARATOR| and \lstinline|tVar.REMOVE_ZEROS|. 
-If \lstinline|tVar.REMOVE_ZEROS| is disabled the number format from \lstinline|tVar.NUMBERFORMAT| get's applied.
+The following example shows the difference between the global parameters
+\lstinline|tVar.REMOVE_DECIMAL_SEPARATOR| and \lstinline|tVar.REMOVE_ZEROS|. 
+If \lstinline|tVar.REMOVE_ZEROS| is disabled the number format from
+\lstinline|tVar.NUMBERFORMAT| get's applied.
 \begin{lstlisting}
 \begin{tVar}
 	#Default settings
@@ -577,13 +653,22 @@ If \lstinline|tVar.REMOVE_ZEROS| is disabled the number format from \lstinline|t
 \end{tVar}
 \end{tVarOUT}
 \subsection{Plotting with Gnuplot}
-Plotting in TexVar is support via Gnuplot. The code describing the figure is generated in TexVar and is sent to Gnuplot which creates the graphics.
-\subsubsection{Configuration}
-For enabling plotting the path to the Gnuplot executable has to be set via a global parameter. By default its set to \lstinline|tVar.GNUPLOT_LIBRARY ="gnuplot"|. In case you work on a windows system and want to specify the absolute path to your Gnuplot install the command has to be \lstinline|tVar.GNUPLOT_LIBRARY =[==["WINDOWSPATH"]==]|.
+Plotting in TexVar is support via Gnuplot. The code describing the figure is
+generated in TexVar and is sent to Gnuplot which creates the graphics.
 
-The Gnuplot terminal is by default \lstinline|tVar.GNUPLOT_TERMINAL = "postscript eps enhanced color font 'Helvetica,12'"| and the file extension is \lstinline|tVar.GNUPLOT_FILE_NAME_EXTENSION = "eps"|.
+\subsubsection{Configuration}
+For enabling plotting the path to the Gnuplot executable has to be set via a
+global parameter. By default its set to \lstinline|tVar.GNUPLOT_LIBRARY
+="gnuplot"|. In case you work on a windows system and want to specify the
+absolute path to your Gnuplot install the command has to be
+\lstinline|tVar.GNUPLOT_LIBRARY =[==["WINDOWSPATH"]==]|.
+
+The Gnuplot terminal is by default \lstinline|tVar.GNUPLOT_TERMINAL =
+"postscript eps enhanced color font 'Helvetica,12'"| and the file extension is
+\lstinline|tVar.GNUPLOT_FILE_NAME_EXTENSION = "eps"|.
 \subsubsection{Creating a Plot}
-Every parameter set through \lstinline|[tPlot].*| is directly translated to a gnuplot command. Actually tPlot is only aware of the following commands
+Every parameter set through \lstinline|[tPlot].*| is directly translated to a
+gnuplot command. Actually tPlot is only aware of the following commands
 \begin{table}[H]\centering
 	\begin{tabular}{@{}p{5.6cm}p{8cm}@{}}\toprule
 		\lstinline|tPlot:New(present[tPlot])| & Creates a new plot. Present is an optional parameter. If a value gets passed the configuration of the plot is used as template for the new plot. \\
@@ -636,7 +721,9 @@ Every parameter set through \lstinline|[tPlot].*| is directly translated to a gn
 		#\\end{center}
 \end{tVar}
 \end{tVarOUT}
-Currently TexVar only supports 2D plots and functions with one attribute. If you want to print a function with more than one attribute you can create a helper function.
+Currently TexVar only supports 2D plots and functions with one attribute. If
+you want to print a function with more than one attribute you can create a
+helper function.
 \begin{lstlisting}
 \begin{tVar}
 	-- use plot1 as template
@@ -673,7 +760,8 @@ Currently TexVar only supports 2D plots and functions with one attribute. If you
 \end{tVar}
 \end{tVarOUT}
 \subsection{Mathematical Commands}
-The following subsections are just a listing of currently implemented mathematical functions.
+The following subsections are just a listing of currently implemented
+mathematical functions.
 \subsubsection{General}
 These functions can be used with every tVar object.
 \begin{itemize}[noitemsep]
@@ -712,9 +800,12 @@ These functions can only be used with tMat or tVec objects.
 	\item {tVec.crossP([tVec],[tVec])}
 \end{itemize}
 \subsection{The Link Function}
-If you want to use your own functions within TexVar, you can use the Link function to link them to tVar functions.
-This only applies to functions that don't use TexVar objects for calculation. If you want to write a TexVar function see Section \ref{lbl:creatFun}.
-The following code shows the implementation of the factorial function with the link function.
+If you want to use your own functions within TexVar, you can use the Link
+function to link them to tVar functions.
+This only applies to functions that don't use TexVar objects for calculation.
+If you want to write a TexVar function see Section \ref{lbl:creatFun}.
+The following code shows the implementation of the factorial function with the
+link function.
 \begin{lstlisting}
 \begin{tVar}
 	function mycalcFactorial(n)
@@ -944,7 +1035,8 @@ Calculating the U-Value for an element with two layers.\\
 \end{tVar}
 \end{tVarOUT}
 \subsection{Rotating a Vector}
-This example shows the usage of the parameter \lstinline|tMat.eqTexAsMatrix| as mentioned in Section \ref{sec:globparam}.
+This example shows the usage of the parameter \lstinline|tMat.eqTexAsMatrix| as
+mentioned in Section \ref{sec:globparam}.
 \begin{lstlisting}
 \begin{tVar}
 tMat.MATRIX_EQUATION_AS_MATRIX = true
@@ -980,7 +1072,9 @@ e:=(A*e_x)
 \end{tVar}
 \end{tVarOUT}
 \subsection{Vector Calculations - Custom Function}
-This example shows how to create a custom TexVar function for calculating the angle between two vectors. The function has an extra parameter for disabling printing.
+This example shows how to create a custom TexVar function for calculating the
+angle between two vectors. The function has an extra parameter for disabling
+printing.
 \begin{lstlisting}
 \begin{tVar}
 	

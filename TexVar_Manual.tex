@@ -5,12 +5,11 @@
 \usepackage{mdframed}
 \graphicspath{{Abbildungen/}}
 
-\title{TexVar - Manual}
-\subtitle{TexVar - LaTeX math calculations\\[0.5 cm]\normalsize\directlua{tVar.getVersion()}}
+\title{TexVar -- Manual}
+\subtitle{TexVar -- LaTeX math calculations\\[0.5 cm]\normalsize\directlua{tVar.getVersion()}}
 \date{\today}
 \author{Sebastian Pech}
 
-\addbibresource{TexVar_manual.bib}
 % Create new environment for tVar Output
 \mdfdefinestyle{tVarSTYLE}
 {
@@ -23,7 +22,6 @@ frametitle={\hfill Output},
 rightline=false,
 leftline=false,
 backgroundcolor=gray!10,
-needspace=20em
 }
 
 %\begin{luacode*}
@@ -87,8 +85,7 @@ at\url{https://www.math.hmc.edu/computing/support/tex/installing/}})
 In order to use Gnuplot with TexVar you have to allow LuaLaTeX to call external
 commands during runtime. This works through the command-line switch
 \lstinline[language=Bash]|--shell-escape|. Your complete call for LuaLaTeX
-could look like this: \lstinline[language=Bash]|lualatex -synctex=1
--interaction=nonstopmode --shell-escape %.tex|. 
+could look like this: \lstinline[language=Bash]|lualatex -synctex=1 -interaction=nonstopmode --shell-escape %.tex|. 
 \section{Getting Started - Hello World}
 To ensure your installation is working test the following code. When using an
 luacode based environment like tVar it's important that the commands
@@ -313,9 +310,9 @@ formatted according to the following examples.
 {plain
 	v_1:={1,4,3}
 	#,~
-	v_1["2"]:outRES()
-	#,~
 	v_1["1"]:=9
+  v_1["1"]:outRES()
+	#,~
 	v_1:outRES()
 }
 \end{tVar}
@@ -536,6 +533,7 @@ you can enclose them with curly brackets. The group operator automatically adds
 an alignment symbol at the beginning of the line and a line-break at the end.
 If you want to suppress this behavior you can open the group with the command
 \lstinline|{plain|.
+  
 \begin{lstlisting}
 \begin{tVar}
 	{
@@ -552,6 +550,7 @@ If you want to suppress this behavior you can open the group with the command
 	}
 \end{tVar}
 \end{lstlisting}
+
 \begin{tVarOUT}
 \begin{tVar}
 {
@@ -568,6 +567,7 @@ If you want to suppress this behavior you can open the group with the command
 }
 \end{tVar}
 \end{tVarOUT}
+
 \subsection{Global Parameters}
 \label{sec:globparam}
 Global parameters can be set during runtime and affect all commands.
@@ -658,13 +658,12 @@ generated in TexVar and is sent to Gnuplot which creates the graphics.
 
 \subsubsection{Configuration}
 For enabling plotting the path to the Gnuplot executable has to be set via a
-global parameter. By default its set to \lstinline|tVar.GNUPLOT_LIBRARY
-="gnuplot"|. In case you work on a windows system and want to specify the
+global parameter. By default its set to \lstinline|tVar.GNUPLOT_LIBRARY ="gnuplot"|.
+In case you work on a windows system and want to specify the
 absolute path to your Gnuplot install the command has to be
 \lstinline|tVar.GNUPLOT_LIBRARY =[==["WINDOWSPATH"]==]|.
 
-The Gnuplot terminal is by default \lstinline|tVar.GNUPLOT_TERMINAL =
-"postscript eps enhanced color font 'Helvetica,12'"| and the file extension is
+The Gnuplot terminal is by default \lstinline|tVar.GNUPLOT_TERMINAL = "postscript eps enhanced color font 'Helvetica,12'"| and the file extension is
 \lstinline|tVar.GNUPLOT_FILE_NAME_EXTENSION = "eps"|.
 \subsubsection{Creating a Plot}
 Every parameter set through \lstinline|[tPlot].*| is directly translated to a
@@ -699,10 +698,9 @@ gnuplot command. Actually tPlot is only aware of the following commands
 	#\\end{center}
 \end{tVar}
 \end{lstlisting}
+
 \begin{tVarOUT}
 \begin{tVar}
-	tVar.GNUPLOT_LIBRARY=[==["C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot.exe"]==]
-	--tVar.GNUPLOT_LIBRARY="/usr/local/Cellar/gnuplot/5.0.1/bin/gnuplot"
 		f(x):=1/x
 		
 		plot1=tPlot:New()
@@ -721,9 +719,11 @@ gnuplot command. Actually tPlot is only aware of the following commands
 		#\\end{center}
 \end{tVar}
 \end{tVarOUT}
+
 Currently TexVar only supports 2D plots and functions with one attribute. If
 you want to print a function with more than one attribute you can create a
 helper function.
+
 \begin{lstlisting}
 \begin{tVar}
 	-- use plot1 as template
@@ -765,7 +765,7 @@ mathematical functions.
 \subsubsection{General}
 These functions can be used with every tVar object.
 \begin{itemize}[noitemsep]
-	\item tVar.sqrt([tVar],[tVar])
+  \item tVar.sqrt([tVar],[tVar] n$^{\text{th}}$-root)
 	\item tVar.PI
 	\item tVar.abs([tVar])
 	\item tVar.acos([tVar]) 
@@ -1242,3 +1242,8 @@ v_2:={0.3,1,0}
 %\end{tVar}
 %\end{tVarOUT}
 \end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
